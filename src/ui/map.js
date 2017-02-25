@@ -518,17 +518,47 @@ class Map extends Camera {
             return Camera.prototype.on.call(this, type, layer);
         }
 
-        const delegate = (e) => {
-            const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
-            if (features.length) {
-                listener.call(this, util.extend({features}, e));
+        const delegatedListener = (() => {
+            if (type === 'mouseenter') {
+                let mousein = false;
+                const delegate = (e) => {
+                    const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+                    if (!features.length) {
+                        mousein = false;
+                    } else if (!mousein) {
+                        mousein = true;
+                        listener.call(this, util.extend({features}, e));
+                    }
+                };
+                return {type: 'mousemove', layer, listener, delegate};
+            } else if (type === 'mouseleave') {
+                let mousein = false;
+                const delegate = (e) => {
+                    const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+                    if (features.length) {
+                        mousein = true;
+                    } else if (mousein) {
+                        mousein = false;
+                        listener.call(this, e);
+                    }
+                };
+                return {type: 'mousemove', layer, listener, delegate};
+            } else {
+                const delegate = (e) => {
+                    const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+                    if (features.length) {
+                        listener.call(this, util.extend({features}, e));
+                    }
+                };
+                return {type, layer, listener, delegate};
             }
-        };
+        })();
 
         this._delegatedListeners = this._delegatedListeners || {};
         this._delegatedListeners[type] = this._delegatedListeners[type] || [];
-        this._delegatedListeners[type].push({layer, listener, delegate});
-        this.on(type, delegate);
+        this._delegatedListeners[type].push(delegatedListener);
+        this.on(delegatedListener.type, delegatedListener.delegate);
+
         return this;
     }
 
@@ -547,8 +577,9 @@ class Map extends Camera {
 
         if (this._delegatedListeners && this._delegatedListeners[type]) {
             for (let i = 0; i < this._delegatedListeners.length; i++) {
-                if (this._delegatedListeners[i].layer === layer && this._delegatedListeners[i].listener === listener) {
-                    this.off(type, this._delegatedListeners[i].delegate);
+                const delegatedListener = this._delegatedListeners[i];
+                if (delegatedListener.layer === layer && delegatedListener.listener === listener) {
+                    this.off(delegatedListener.type, delegatedListener.delegate);
                     this._delegatedListeners.splice(i, 1);
                     return this;
                 }
