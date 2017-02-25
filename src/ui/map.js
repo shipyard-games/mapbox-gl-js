@@ -503,6 +503,60 @@ class Map extends Camera {
     }
 
     /**
+     * Adds a listener for events of a specified type, and optionally limited to a specified
+     * style layer.
+     *
+     * @param {string} type The event type to listen for.
+     * @param {string} [layer] If provided, only events whose location is within a visible
+     * feature will trigger the listener. The event will have a `features` property containing
+     * an array of the matching features.
+     * @param {Function} listener The function to be called when the event is fired.
+     * @returns {Map} `this`
+     */
+    on(type, layer, listener) {
+        if (listener === undefined) {
+            return Camera.prototype.on.call(this, type, layer);
+        }
+
+        const delegate = (e) => {
+            const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+            if (features.length) {
+                listener.call(this, util.extend({features}, e));
+            }
+        };
+
+        this._delegatedListeners = this._delegatedListeners || {};
+        this._delegatedListeners[type] = this._delegatedListeners[type] || [];
+        this._delegatedListeners[type].push({layer, listener, delegate});
+        this.on(type, delegate);
+        return this;
+    }
+
+    /**
+     * Removes a listener previously added with `Map#on`.
+     *
+     * @param {string} type The event type previously used to install the listener.
+     * @param {string} [layer] The layer previously used to install the listener, if any.
+     * @param {Function} listener The function previously installed as a listener.
+     * @returns {Map} `this`
+     */
+    off(type, layer, listener) {
+        if (listener === undefined) {
+            return Camera.prototype.on.call(this, type, layer);
+        }
+
+        if (this._delegatedListeners && this._delegatedListeners[type]) {
+            for (let i = 0; i < this._delegatedListeners.length; i++) {
+                if (this._delegatedListeners[i].layer === layer && this._delegatedListeners[i].listener === listener) {
+                    this.off(type, this._delegatedListeners[i].delegate);
+                    this._delegatedListeners.splice(i, 1);
+                    return this;
+                }
+            }
+        }
+    }
+
+    /**
      * Returns an array of [GeoJSON](http://geojson.org/)
      * [Feature objects](http://geojson.org/geojson-spec.html#feature-objects)
      * representing visible features that satisfy the query parameters.
