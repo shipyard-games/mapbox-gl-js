@@ -47,6 +47,8 @@ function ExtrusionTexture(gl, painter, layer) {
     this.fbos = this.painter.preFbos[this.width] && this.painter.preFbos[this.width][this.height];
 }
 
+// TODO create OffscreenTexture class for extrusions + terrain
+// preprocessing?
 ExtrusionTexture.prototype.bindFramebuffer = function() {
     const gl = this.gl;
 
