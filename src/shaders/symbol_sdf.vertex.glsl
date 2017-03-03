@@ -1,9 +1,16 @@
 const float PI = 3.141592653589793;
 
-attribute vec2 a_pos;
-attribute vec2 a_offset;
+#ifdef MAPBOX_GL_NATIVE
+  attribute vec4 a_pos_offset;
+#else
+  attribute vec2 a_pos;
+  attribute vec2 a_offset;
+#endif
+
 attribute vec2 a_texture_pos;
 attribute vec4 a_data;
+
+
 
 #pragma mapbox: define lowp vec4 fill_color
 #pragma mapbox: define lowp vec4 halo_color
@@ -34,6 +41,11 @@ void main() {
     #pragma mapbox: initialize lowp float opacity
     #pragma mapbox: initialize lowp float halo_width
     #pragma mapbox: initialize lowp float halo_blur
+
+#ifdef MAPBOX_GL_NATIVE
+    mediump vec2 a_pos = a_pos_offset.xy;
+    mediump vec2 a_offset = a_pos_offset.zw;
+#endif
 
     vec2 a_tex = a_texture_pos.xy;
     mediump float a_labelminzoom = a_data[0];
