@@ -35,6 +35,32 @@ vec4 evaluate_zoom_function_4(const vec4 value0, const vec4 value1, const vec4 v
     }
 }
 
+
+// Encoding function
+// static std::array<float, 2> encodeColor (const Color& color) {
+//     const auto v1 = static_cast<uint16_t>( static_cast<uint16_t>(color.r*255)*256 + color.g*255);
+//     const auto v2 = static_cast<uint16_t>( static_cast<uint16_t>(color.b*255)*256 + color.a*255);
+//     return {{ static_cast<float>(v1), static_cast<float>(v2) }};
+// }
+
+vec4 decode_color(const vec2 encodedColor) {
+    float r = floor(encodedColor[0]/256.0)/255.0;
+    float g = (encodedColor[0] - r*256.0*255.0)/255.0;
+    float b = floor(encodedColor[1]/256.0)/255.0;
+    float a = (encodedColor[1] - b*256.0*255.0)/255.0;
+    return vec4(r, g, b, a);
+}
+
+float unpack_mix_vec2(const vec2 packedValue, const float t) {
+    return mix(packedValue[0], packedValue[1], t);
+}
+
+vec4 unpack_mix_vec4(const vec4 packedColors, const float t) {
+    vec4 minColor = decode_color(vec2(packedColors[0], packedColors[1]));
+    vec4 maxColor = decode_color(vec2(packedColors[2], packedColors[3]));
+    return mix(minColor, maxColor, t);
+}
+
 // The offset depends on how many pixels are between the world origin and the edge of the tile:
 // vec2 offset = mod(pixel_coord, size)
 //
